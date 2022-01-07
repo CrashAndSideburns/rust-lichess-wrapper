@@ -12,3 +12,4 @@ hyper = { version = "0.14", features = ["full"] }
 hyper-tls = "0.5"
 tokio = { version = "1", features = ["full"] }
 crossbeam = "0.8"
+chrono = { vesion = "0.4", features = ["serde"] }
