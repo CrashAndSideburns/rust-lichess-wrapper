@@ -1,3 +1,5 @@
+use crate::core::ndjson::ndjson::NDJsonStream;
+
 use hyper::{ Request, Method, Body, StatusCode };
 use hyper::client::HttpConnector;
 use hyper_tls::HttpsConnector;
@@ -27,14 +29,11 @@ impl Client {
         }
     }
 
-    /// Send a GET request to the supplied endpoint, then parse the response as
-    /// JSON. Requests cannot be made synchonously, and will error if the
+    /// Send a GET request to the supplied endpoint, then return the response
+    /// body. Requests cannot be made synchonously, and will error if the
     /// server responds with a 429 status code, in which case new requests will
     /// all error for 60 seconds, or until the rate limit is lifted.
-    async fn get<T>(&self, endpoint: &str) -> Result<T, Box<dyn Error>>
-    where
-        T: DeserializeOwned,
-    {
+    async fn get(&self, endpoint: &str) -> Result<Body, Box<dyn Error>> {
         if let Some(rate_limiter) = self.rate_limiter.load() {
             if rate_limiter >= Instant::now() {
                 return Err(Box::new(ClientError::RateLimited(rate_limiter)));
@@ -51,12 +50,11 @@ impl Client {
 
         let http_client = self.http_client.lock().await;
 
-        let resp = http_client.request(req).await.unwrap();
+        let resp = http_client.request(req).await?;
 
         match resp.status() {
             StatusCode::OK => {
-                let resp_body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
-                Ok(serde_json::from_slice(&resp_body).unwrap())
+                Ok(resp.into_body())
             }
             StatusCode::TOO_MANY_REQUESTS => {
                 let new_rate_limiter = Instant::now() + Duration::from_secs(60);
@@ -67,6 +65,21 @@ impl Client {
                 panic!("Invalid response status code: {}", other);
             }
         }
+    }
+
+    /// Make a GET request to the API, and deserialize the response as a JSON
+    /// object.
+    async fn get_json<T>(&self, endpoint: &str) -> Result<T, Box<dyn Error>>
+    where T: DeserializeOwned
+    {
+        let bytes = hyper::body::to_bytes(self.get(endpoint).await?).await?;
+        Ok(serde_json::from_slice(&bytes)?)
+    }
+
+    /// Make a GET request to the API, and deserialize the response as an
+    /// NDJSON stream.
+    async fn get_ndjson<T>(&self, endpoint: &str) -> Result<NDJsonStream<T>, Box<dyn Error>> {
+        Ok(NDJsonStream::new(self.get(endpoint).await?))
     }
 }
 
