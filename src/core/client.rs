@@ -3,6 +3,8 @@ use hyper::client::HttpConnector;
 use hyper_tls::HttpsConnector;
 
 use std::time::{Duration, Instant};
+use std::error::Error;
+use std::fmt::Display;
 
 use crossbeam::atomic::AtomicCell;
 use tokio::sync::Mutex;
@@ -29,13 +31,13 @@ impl Client {
     /// JSON. Requests cannot be made synchonously, and will error if the
     /// server responds with a 429 status code, in which case new requests will
     /// all error for 60 seconds, or until the rate limit is lifted.
-    async fn get<T>(&self, endpoint: &str) -> Result<T, Error>
+    async fn get<T>(&self, endpoint: &str) -> Result<T, Box<dyn Error>>
     where
         T: DeserializeOwned,
     {
         if let Some(rate_limiter) = self.rate_limiter.load() {
             if rate_limiter >= Instant::now() {
-                return Err(Error::RateLimited(rate_limiter));
+                return Err(Box::new(ClientError::RateLimited(rate_limiter)));
             } else {
                 self.rate_limiter.store(None);
             }
@@ -59,7 +61,7 @@ impl Client {
             StatusCode::TOO_MANY_REQUESTS => {
                 let new_rate_limiter = Instant::now() + Duration::from_secs(60);
                 self.rate_limiter.store(Some(new_rate_limiter));
-                Err(Error::RateLimited(new_rate_limiter))
+                Err(Box::new(ClientError::RateLimited(new_rate_limiter)))
             }
             other => {
                 panic!("Invalid response status code: {}", other);
@@ -69,6 +71,19 @@ impl Client {
 }
 
 /// An error in client-server communication.
-pub enum Error {
+#[derive(Debug)]
+pub enum ClientError {
     RateLimited(Instant),
 }
+
+impl Display for ClientError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ClientError::RateLimited(rate_limit) => {
+                write!(f, "request was denied due to rate limit in effect until {:?}", rate_limit)
+            }
+        }
+    }
+}
+
+impl Error for ClientError {}
