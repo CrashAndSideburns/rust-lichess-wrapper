@@ -1,4 +1,5 @@
 use crate::lichess::user::LightUser;
+use crate::lichess::title::Title;
 
 use serde::{ Deserialize, Deserializer };
 
@@ -26,18 +27,58 @@ pub struct Top10s {
 /// A user in a Top 10 list, with their performance in the relevant variant.
 /// Derived from [lila.user.Perfs.Leaderboards][1].
 /// [1]: <https://github.com/ornicar/lila/blob/master/modules/user/src/main/Perfs.scala>
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct Top10 {
-    #[serde(flatten)]
     pub user: LightUser,
-    #[serde(alias = "perfs", deserialize_with = "perf_unwrapper")]
+    pub online: bool,
     pub perf: Top10Performance
+}
+
+// Gross manual implementation of Deserialize to work around the fact that
+// serde's alias attribute does not work if the struct containing it is
+// flattened. Ideally this would all be unnecessary and I could just flatten
+// LightUser and move on with my life, but since the Top10s endpoint calls what
+// all other LightUser endpoints call "name" "username" instead, this is
+// necessary.
+impl<'de> Deserialize<'de> for Top10 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+            D: Deserializer<'de> {
+        #[derive(Deserialize, Debug)]
+        struct Temp {
+            username: String,
+            id: String,
+            #[serde(default)]
+            title: Option<Title>,
+            #[serde(default)]
+            patron: bool,
+            #[serde(default)]
+            online: bool,
+            #[serde(deserialize_with = "deserialize")]
+            perfs: Top10Performance
+        }
+
+        let temp = Temp::deserialize(deserializer)?;
+
+        let user = LightUser {
+            name: temp.username,
+            id: temp.id,
+            title: temp.title,
+            patron: temp.patron
+        };
+
+        Ok(
+            Top10 {
+                user,
+                online: temp.online,
+                perf: temp.perfs
+            }
+        )
+    }
 }
 
 /// Representation of the performance of a user in a Top 10 list.
 #[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
 pub struct Top10Performance {
     pub rating: i32,
     pub progress: i32
@@ -49,7 +90,7 @@ pub struct Top10Performance {
 // is always of the same type, and the performance's variant is encoded in the
 // name of the list which the Top10 is in, we remove the outer struct on
 // deserialization.
-fn perf_unwrapper<'de, D>(deserializer: D) -> Result<Top10Performance, D::Error>
+fn deserialize<'de, D>(deserializer: D) -> Result<Top10Performance, D::Error>
 where D: Deserializer<'de>
 {
     #[derive(Deserialize, Debug)]
