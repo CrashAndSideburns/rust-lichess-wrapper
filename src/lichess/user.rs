@@ -14,7 +14,8 @@ use chrono::serde::ts_milliseconds;
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct LightUser {
-    pub name: String,
+    #[serde(alias = "name")]
+    pub username: String,
     #[serde(default)]
     pub title: Option<Title>,
     #[serde(default)]
@@ -83,7 +84,7 @@ pub struct ExtendedUser {
     pub verified: bool,
     pub play_time: PlayTime,
     #[serde(default)]
-    title: Option<Title>,
+    pub title: Option<Title>,
     pub url: String,
     #[serde(default)]
     pub playing: Option<String>,
