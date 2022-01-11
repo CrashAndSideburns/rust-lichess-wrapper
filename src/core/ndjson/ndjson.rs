@@ -1,17 +1,17 @@
 use hyper::Body;
-use tokio_stream::Stream;
 use serde::de::DeserializeOwned;
-use std::pin::Pin;
-use std::task::{ Context, Poll };
 use std::error::Error;
-use std::marker::{ PhantomData, Unpin };
+use std::marker::{PhantomData, Unpin};
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use tokio_stream::Stream;
 
 /// A stream of NDJSON objects.
 pub struct NDJsonStream<T> {
     buf: Vec<u8>,
     waiting: bool,
     body: Body,
-    phantom: PhantomData<T>
+    phantom: PhantomData<T>,
 }
 
 impl<T> NDJsonStream<T> {
@@ -20,20 +20,20 @@ impl<T> NDJsonStream<T> {
             buf: Vec::new(),
             waiting: false,
             body,
-            phantom: PhantomData
+            phantom: PhantomData,
         }
     }
 }
 
 impl<T> Stream for NDJsonStream<T>
-where T: DeserializeOwned
+where
+    T: DeserializeOwned,
 {
     type Item = Result<T, Box<dyn Error>>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         loop {
             if !self.waiting && !self.buf.is_empty() {
-
                 // Find the location of the first newline in the buffer, if
                 // one exists.
                 match memchr::memchr(b'\n', &self.buf) {
@@ -50,7 +50,7 @@ where T: DeserializeOwned
                         // and return.
                         let line = String::from_utf8(std::mem::replace(&mut self.buf, rest))?;
                         return Poll::Ready(Some(Ok(serde_json::from_str(&line)?)));
-                    },
+                    }
                     None => {
                         // There is no newline in the buffer, so we must wait
                         // until polling the body gives us one.
@@ -68,10 +68,10 @@ where T: DeserializeOwned
                 Poll::Ready(Some(buf)) => {
                     self.buf.extend_from_slice(&buf);
                     self.waiting = false;
-                },
+                }
                 Poll::Ready(None) => {
                     return Poll::Ready(None);
-                },
+                }
                 Poll::Pending => {
                     return Poll::Pending;
                 }

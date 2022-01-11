@@ -1,12 +1,12 @@
 use crate::lichess::count::Count;
 use crate::lichess::performances::Performances;
+use crate::lichess::playtime::PlayTime;
 use crate::lichess::profile::Profile;
 use crate::lichess::title::Title;
-use crate::lichess::playtime::PlayTime;
 
-use serde::{Deserialize, Serialize};
-use chrono::{ Utc, DateTime };
 use chrono::serde::ts_milliseconds;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// Light representation of a Lichess user.
 /// Derived from [lila.common.LightUser][1].
@@ -51,7 +51,7 @@ pub struct User {
     pub verified: bool,
     pub play_time: PlayTime,
     #[serde(default)]
-    title: Option<Title>
+    title: Option<Title>,
 }
 
 /// Extended representation of a Lichess user.
@@ -105,7 +105,7 @@ pub struct ExtendedUser {
     #[serde(default = "follow_field_default")]
     pub blocking: Option<bool>,
     #[serde(default = "follow_field_default")]
-    pub follows_you: Option<bool>
+    pub follows_you: Option<bool>,
 }
 
 // This is something of an ugly hack. Option<bool>::default() is None, but when

@@ -1,4 +1,4 @@
-use serde::{ Serialize, Deserialize };
+use serde::{Deserialize, Serialize};
 
 /// Represention of a Lichess user's overall game stats.
 /// Derived from [lila.user.Count][1].

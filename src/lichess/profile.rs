@@ -1,4 +1,4 @@
-use serde::{ Serialize, Deserialize };
+use serde::{Deserialize, Serialize};
 
 /// Representation of a Lichess user profile.
 /// Derived from [lila.user.Profile][1].
@@ -14,5 +14,5 @@ pub struct Profile {
     fide_rating: Option<i32>,
     uscf_rating: Option<i32>,
     ecf_rating: Option<i32>,
-    links: Option<String>
+    links: Option<String>,
 }

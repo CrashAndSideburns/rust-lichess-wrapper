@@ -1,7 +1,7 @@
-use crate::lichess::user::LightUser;
 use crate::lichess::title::Title;
+use crate::lichess::user::LightUser;
 
-use serde::{ Deserialize, Deserializer };
+use serde::{Deserialize, Deserializer};
 
 /// Lists of the top 10 users in all variants.
 /// Derived from [lila.user.Perfs.Leaderboards][1].
@@ -21,7 +21,7 @@ pub struct Top10s {
     pub horde: [Top10; 10],
     pub king_of_the_hill: [Top10; 10],
     pub racing_kings: [Top10; 10],
-    pub three_check: [Top10; 10]
+    pub three_check: [Top10; 10],
 }
 
 /// A user in a Top 10 list, with their performance in the relevant variant.
@@ -31,7 +31,7 @@ pub struct Top10s {
 pub struct Top10 {
     pub user: LightUser,
     pub online: bool,
-    pub perf: Top10Performance
+    pub perf: Top10Performance,
 }
 
 // Gross manual implementation of Deserialize to work around the fact that
@@ -43,7 +43,8 @@ pub struct Top10 {
 impl<'de> Deserialize<'de> for Top10 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-            D: Deserializer<'de> {
+        D: Deserializer<'de>,
+    {
         #[derive(Deserialize, Debug)]
         struct Temp {
             username: String,
@@ -55,7 +56,7 @@ impl<'de> Deserialize<'de> for Top10 {
             #[serde(default)]
             online: bool,
             #[serde(deserialize_with = "deserialize")]
-            perfs: Top10Performance
+            perfs: Top10Performance,
         }
 
         let temp = Temp::deserialize(deserializer)?;
@@ -64,16 +65,14 @@ impl<'de> Deserialize<'de> for Top10 {
             name: temp.username,
             id: temp.id,
             title: temp.title,
-            patron: temp.patron
+            patron: temp.patron,
         };
 
-        Ok(
-            Top10 {
-                user,
-                online: temp.online,
-                perf: temp.perfs
-            }
-        )
+        Ok(Top10 {
+            user,
+            online: temp.online,
+            perf: temp.perfs,
+        })
     }
 }
 
@@ -81,7 +80,7 @@ impl<'de> Deserialize<'de> for Top10 {
 #[derive(Deserialize, Debug)]
 pub struct Top10Performance {
     pub rating: i32,
-    pub progress: i32
+    pub progress: i32,
 }
 
 // This is kind of a hack. The object returned by the Top 10 API endpoint has
@@ -91,23 +90,26 @@ pub struct Top10Performance {
 // name of the list which the Top10 is in, we remove the outer struct on
 // deserialization.
 fn deserialize<'de, D>(deserializer: D) -> Result<Top10Performance, D::Error>
-where D: Deserializer<'de>
+where
+    D: Deserializer<'de>,
 {
     #[derive(Deserialize, Debug)]
     struct WrappedTop10Performance {
-        #[serde(alias = "blitz",
-                alias = "rapid",
-                alias = "classical",
-                alias = "ultraBullet",
-                alias = "chess960",
-                alias = "crazyhouse",
-                alias = "antichess",
-                alias = "atomic",
-                alias = "horde",
-                alias = "kingOfTheHill",
-                alias = "racingKings",
-                alias = "threeCheck")]
-        bullet: Top10Performance
+        #[serde(
+            alias = "blitz",
+            alias = "rapid",
+            alias = "classical",
+            alias = "ultraBullet",
+            alias = "chess960",
+            alias = "crazyhouse",
+            alias = "antichess",
+            alias = "atomic",
+            alias = "horde",
+            alias = "kingOfTheHill",
+            alias = "racingKings",
+            alias = "threeCheck"
+        )]
+        bullet: Top10Performance,
     }
 
     let perf = WrappedTop10Performance::deserialize(deserializer)?;

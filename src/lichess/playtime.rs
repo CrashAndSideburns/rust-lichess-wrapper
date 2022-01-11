@@ -1,4 +1,4 @@
-use serde::{ Serialize, Deserialize };
+use serde::{Deserialize, Serialize};
 
 /// Represention of a Lichess user's playtime.
 /// Derived from [lila.user.User.PlayTime][1].
@@ -7,5 +7,5 @@ use serde::{ Serialize, Deserialize };
 #[serde(rename_all = "camelCase")]
 pub struct PlayTime {
     pub total: i32,
-    pub tv: i32
+    pub tv: i32,
 }

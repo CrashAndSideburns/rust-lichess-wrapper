@@ -43,7 +43,7 @@ impl Default for Performance {
             rating: 1500,
             rd: 500,
             prog: 0,
-            prov: true
+            prov: true,
         }
     }
 }
@@ -60,9 +60,6 @@ pub struct StormPerformance {
 
 impl Default for StormPerformance {
     fn default() -> Self {
-        StormPerformance {
-            runs: 0,
-            score: 0
-        }
+        StormPerformance { runs: 0, score: 0 }
     }
 }
